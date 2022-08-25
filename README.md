@@ -1,2 +1,8 @@
 # Parallel-Programming
-Code for CS 4075
+
+#### Install open-mpi
+
+```
+sudo pacman -S openmpi        # arch-based distro
+```
+
