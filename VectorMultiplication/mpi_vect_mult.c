@@ -44,16 +44,53 @@ void Read_n(int* n_p, int* local_n_p, int my_rank, int comm_sz, MPI_Comm comm)
     /* Proc > 0: receive n and local_n */
     MPI_Bcast(n_p, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(local_n_p, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    printf("Process %d:\n", my_rank);
-    printf("\tn = %d:\n", *n_p);
-    printf("\tlocal_n = %d:\n", *local_n_p);
 }
 
+void Check_for_error(int local_ok, char fname[], char message[], MPI_Comm comm)
+{
+    int okay = -1;
+
+    MPI_Allreduce(&local_ok, &okay, 1, MPI_INT, MPI_MIN, comm);
+    
+    if (okay == 0)
+    {
+        int my_rank = -1;
+        MPI_Comm_rank(comm, &my_rank);
+
+        if(my_rank == 0)
+        {
+            fprintf(stderr, "Proc %d > In %s, %s\n", my_rank, fname, message);
+            fflush(stderr);
+        }
+
+        MPI_Finalize();
+        exit(-1);
     }
 }
 
 
+void Print_vector(double local_vec[], int local_n, int n, char title[],
+        int my_rank, MPI_Comm comm)
+{
+    double *vec = NULL;
+    
+    if(my_rank == 0)
+    {
+        vec = malloc(n * sizeof(double));
+        MPI_Gather(local_vec, local_n, MPI_DOUBLE, vec, local_n, MPI_DOUBLE, 0, comm);
 
+        printf("%s\n", title);
+        for (int i = 0; i < n; i++)
+        {
+            printf("%f ", vec[i]);
+        }
+        printf("\n");
+        free(vec);
+    }
+    else
+    {
+        MPI_Gather(local_vec, local_n, MPI_DOUBLE, vec, local_n, MPI_DOUBLE, 0, comm);
+    }
+}
 
 
