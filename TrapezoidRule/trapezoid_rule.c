@@ -4,19 +4,33 @@
 #include <mpi.h>
 #include <assert.h>
 
-double Trap(double local_a, double local_b, int local_n, double h);
-double f(double input);
+double Trap(double left_endpt, double right_endpt, int trap_count, double base_len);
+double f(double x);
+void Get_input(int my_rank, int comm_sz, double* a_p, double* b_p, int* n_p);
 
 int main(void)
 {
-    int my_rank, comm_sz, n = 1024, local_n;
-    double a = 0.0, b = 5.0, h, local_a, local_b;
-    double local_int, total_int;
+    int my_rank;
+    int comm_sz;
+    int n = 1024;
+    int local_n;
+
+    double a = 0.0;
+    double b = 5.0;
+    double h;
+    double local_a;
+    double local_b;
+
+    double local_int;
+    double total_int;
+
     int source;
 
     MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+
+    Get_input(my_rank, comm_sz, &a, &b, &n);
 
     h = (b - a) / n;
     local_n = n / comm_sz;
@@ -57,7 +71,7 @@ double Trap(double left_endpt, double right_endpt, int trap_count, double base_l
     int i;
 
     estimate = (f(left_endpt) + f(right_endpt)) / 2.0;
-    for (i = 1; i <=trap_count - 1; i++)
+    for (i = 1; i <= trap_count - 1; i++)
     {
         x = left_endpt + i * base_len;
         estimate += f(x);
@@ -68,9 +82,33 @@ double Trap(double left_endpt, double right_endpt, int trap_count, double base_l
 } /* Trap */
 
 
-double f(double input)
+double f(double x)
 {
     // basic function: x^2
-    return input * input;
+    return x * x;
 } /* f */
+
+
+void Get_input(int my_rank, int comm_sz, double* a_p, double* b_p, int* n_p)
+{
+    int dest;
+
+    if (my_rank == 0)
+    {
+        printf("Enter a, b, and n\n");
+        scanf("%lf %lf %d", a_p, b_p, n_p);
+        for (dest = 1; dest < comm_sz; dest++)
+        {
+            MPI_Send(a_p, 1, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);
+            MPI_Send(b_p, 1, MPI_DOUBLE, dest, 0, MPI_COMM_WORLD);
+            MPI_Send(n_p, 1, MPI_INT, dest, 0, MPI_COMM_WORLD);
+        }
+    }
+    else
+    {
+        MPI_Recv(a_p, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(b_p, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(n_p, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+} /* Get_input */
 
