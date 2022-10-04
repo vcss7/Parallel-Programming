@@ -4,10 +4,13 @@
 #include <mpi.h>
 #include <assert.h>
 
+double Trap(double local_a, double local_b, int local_n, double h);
+double f(double input);
+
 int main(void)
 {
     int my_rank, comm_sz, n = 1024, local_n;
-    double a = 0.0, b = 3.0, h, local_a, local_b;
+    double a = 0.0, b = 5.0, h, local_a, local_b;
     double local_int, total_int;
     int source;
 
@@ -24,7 +27,7 @@ int main(void)
     
     if (my_rank != 0)
     {
-        MPI_Send(&local_int, 1, MPI_DOULBE, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(&local_int, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
     }
     else
     {
@@ -46,4 +49,28 @@ int main(void)
     MPI_Finalize();
     return 0;
 } /* main */
+
+
+double Trap(double left_endpt, double right_endpt, int trap_count, double base_len)
+{
+    double estimate, x;
+    int i;
+
+    estimate = (f(left_endpt) + f(right_endpt)) / 2.0;
+    for (i = 1; i <=trap_count - 1; i++)
+    {
+        x = left_endpt + i * base_len;
+        estimate += f(x);
+    }
+    estimate = estimate * base_len;
+
+    return estimate;
+} /* Trap */
+
+
+double f(double input)
+{
+    // basic function: x^2
+    return input * input;
+} /* f */
 
