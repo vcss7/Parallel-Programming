@@ -24,8 +24,6 @@ int main(void)
     double local_int;
     double total_int;
 
-    int source;
-
     MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
@@ -90,7 +88,7 @@ double Trap(double left_endpt, double right_endpt, int trap_count, double base_l
 double f(double x)
 {
     // basic function: x^2
-    return x * x;
+    return x ;
 } /* f */
 
 
