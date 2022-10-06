@@ -11,19 +11,25 @@ void Get_input(int *bin_count_p, float *min_meas_p, float *max_meas_p, int *data
         int* local_data_count_p, int my_rank, int comm_sz, MPI_Comm comm);
 void Generate_data(float local_data[], int local_data_count, int data_count,
         float min_meas, float max_meas, int my_rank, MPI_Comm comm);
-
 void Print_data(float local_data[], int local_data_count, int data_count,
         char title[], int my_rank, MPI_Comm comm);
+
+void Set_subintervals(float bin_mins[], float bin_maxes[], float min_meas, 
+        float max_meas, int bin_count, int my_rank, MPI_Comm comm);
+void Build_histogram(float local_data[], int local_data_count, float bin_mins[],
+        float bin_maxes[], int bin_count, int bin_counts[], float min_meas,
+        float max_meas);
+
 
 int main(void)
 {
     int my_rank, comm_sz;
 
-    int bin_count, local_bin_count;
+    int bin_count, local_bin_count, *bin_counts;
     float min_meas, max_meas;
     int data_count, local_data_count;
     float* data, *local_data;
-    //float* bin_maxes;
+    float* bin_mins, * bin_maxes;
     //int* bin_counts, local_bin_counts;
 
     MPI_Init(NULL, NULL);
@@ -37,19 +43,61 @@ int main(void)
 
     data = malloc(data_count * sizeof(float));
     local_data = malloc(local_data_count * sizeof(float));
+    bin_mins = malloc(bin_count * sizeof(float));
+    bin_maxes = malloc(bin_count * sizeof(float));
+    bin_counts = malloc(bin_count * sizeof(float));
+    local_bin_count = malloc(bin_count * sizeof(float));
 
     Generate_data(local_data, local_data_count, data_count, min_meas, max_meas, my_rank, MPI_COMM_WORLD);
 
+    Set_subintervals(bin_mins, bin_maxes, min_meas, max_meas, bin_count, my_rank, MPI_COMM_WORLD);
+    Build_histogram(local_data, local_data_count, bin_mins, bin_maxes,
+            bin_count, bin_counts, min_meas, max_meas);
+
     Print_data(local_data, local_data_count, data_count, "histogram data", my_rank, MPI_COMM_WORLD);
-    if (my_rank == 0)
-    {
-    }
 
     /* End of Program */
 
     MPI_Finalize();
     return 0;
 } /* main */
+
+
+void Build_histogram(float local_data[], int local_data_count, float bin_mins[],
+        float bin_maxes[], int bin_count, int bin_counts[], float min_meas,
+        float max_meas)
+{
+    int i;
+    int j;
+
+    // go through each datum
+    for (i = 0; i < local_data_count; i++)
+    {
+        // go through each bin
+        for (j = 0; j < bin_count; j++)
+        {
+            if (bin_mins[j] < local_data[i] && local_data[i] <= bin_maxes[j])
+            {
+                bin_counts[j]++;
+            }
+        }
+    }
+
+}
+
+
+void Set_subintervals(float bin_mins[], float bin_maxes[], float min_meas, 
+        float max_meas, int bin_count, int my_rank, MPI_Comm comm)
+{
+    float interval = (max_meas - min_meas) / (float) bin_count;
+
+    int i;
+    for (i = 0; i < bin_count; i++)
+    {
+        bin_mins[i] = min_meas + interval * (float) (i);
+        bin_maxes[i] = min_meas + interval * (float) (i + 1);
+    }
+} /* Set_subintervals */
 
 
 void Read_input(
