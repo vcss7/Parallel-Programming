@@ -126,8 +126,23 @@ MPI_Bcast(
     int             count           /* in; num data values */
     MPI_Datatype    datatype        /* in; datatype of data value(s) */
     int             source_proc     /* in; process sending data */
-    MPI_Comm        communicator    /* in; communcator to use */
+    MPI_Comm        communicator    /* in; communicator to use */
 );
+```
+
+`MPI_Scatter(..)` divides the data referenced by the number of processes inside
+the communicator and sends a part of that data to the processes.
+
+```
+MPI_Scatter(
+    void*           send_buf_p      /* in; output data memory location */
+    int             send_count      /* in; num data sending to each process */
+    MPI_Datatype    send_type       /* in; type of data sending */
+    void*           recv_buf_p      /* out; where to save data received */
+    int             recv_count      /* in; num data each process receives */
+    MPI_Datatype    recv_type       /* in; type of data receiving */
+    int             src_proc        /* in; the processes sending the data */
+    MPI_Comm        comm            /*in; the communicator to use */
 ```
 
 #### Finalization
