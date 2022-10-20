@@ -29,7 +29,7 @@ mpiexec -n 2 --mca opal_warn_on_missing_libcuda 0 ./program
 
 ## Writing an MPI Program 
 
-#### Initialization
+### Initialization
 `MPI_Init(...)` takes care of the program's setup (sets up message buffers,
 process ranking). It is the first function that should be called from the MPI
 API.
@@ -42,7 +42,7 @@ int MPI_Init(
 );
 ```
 
-#### Communication
+### Communication
 
 `MPI_Comm` is a special MPI type called a **communicator**. It handles the
 communication between processes. Effectively, a communicator is a collection of
@@ -69,7 +69,7 @@ int MPI_Comm_rank(
 );
 ```
 
-##### Point-to-Point Communication
+#### Point-to-Point Communication
 Point-to-Point communication is communication between two processes.
 
 `MPI_Send(...)` sends messages between processes.
@@ -96,9 +96,10 @@ int MPI_Recv(
     int             tag             /* in;  used to distinguish data */
     MPI_Comm        communicator    /* in;  the communicator being used */
     MPI_Status      status_p        /* out; */
+);
 ```
 
-##### Collective Communication
+#### Collective Communication
 Collective communication is communication between a collection of processes.
 MPI collective communicaiton functions are optimized for their respective
 operation to offload the optimization from the programmer.
@@ -115,6 +116,7 @@ MPI_Reduce(
     MPI_Op          operator        /* in; operation to do */
     int             dest_process    /* in; destination process */
     MPI_Comm        communicator    /* in; communicator to use */
+);
 ```
 
 `MPI_Bcast(...)` gets data from one process and send it to all the processes
@@ -143,6 +145,7 @@ MPI_Scatter(
     MPI_Datatype    recv_type       /* in; type of data receiving */
     int             src_proc        /* in; the processes sending the data */
     MPI_Comm        comm            /* in; the communicator to use */
+);
 ```
 
 `MPI_Gather` gathers the data referenced and sends it to a destination process
@@ -158,9 +161,30 @@ MPI_Gather(
     MPI_Datatype    recv_type       /* in; type of data recv */
     int             dest_proc       /* in; destination process */
     MPI_Comm        comm            /* in; the communicator to use */
+);
 ```
 
-#### Finalization
+### Derived Datatypes
+Passing messages between processes can be expensive. It is cheaper to send a
+single large message than it is to send multiple messages with the same amount
+of data.
+
+MPI derived datatypes are used to represent a collection of data and their data
+types for the purpose of being sent between processes and hence make
+communication more effecient.
+
+`MPI_Type_contiguous(...)` can be used to build a derived datatypes of
+contiguous elements in an array.
+
+```
+MPI_Type_contiguous(
+    int             count           /* in; num data in the array */
+    MPI_Datatype    old_mpi_t       /* in; old MPI datatype */
+    MPI_Datatype    new_mpi_t_p     /* out; pointer to new mpi type */
+)
+```
+
+### Finalization
 `MPI_Finalize()` frees up any resources used by MPI and indicates that the
 program is done using the MPI API. It is the last function that should be called
 from the MPI API.
