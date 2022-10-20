@@ -142,7 +142,22 @@ MPI_Scatter(
     int             recv_count      /* in; num data each process receives */
     MPI_Datatype    recv_type       /* in; type of data receiving */
     int             src_proc        /* in; the processes sending the data */
-    MPI_Comm        comm            /*in; the communicator to use */
+    MPI_Comm        comm            /* in; the communicator to use */
+```
+
+`MPI_Gather` gathers the data referenced and sends it to a destination process
+inside the communicator.
+
+```
+MPI_Gather(
+    void*           send_buf_p      /* in; memory location of data being sent */
+    int             send_count      /* in; num data being sent by each process */
+    MPI_Datatype    send_type       /* in; type of data sending */
+    void*           recv_buf_p      /* out; memory location of gathered data */
+    int             recv_count      /* in; num data from each process */
+    MPI_Datatype    recv_type       /* in; type of data recv */
+    int             dest_proc       /* in; destination process */
+    MPI_Comm        comm            /* in; the communicator to use */
 ```
 
 #### Finalization
