@@ -5,27 +5,25 @@
 #include <mpi.h>
 
 
-void Sum_vectors(   double      local_x[]       /* in  */,
-                    double      local_y[]       /* in  */,
-                    double      local_vec_sum[] /* out */,
-                    int         local_n         /* in  */);
+void Generate_data( int         local_x[]       /* out */,
+                    int         n               /* in  */,
+                    int         local_n         /* in  */,
+                    int         min_val         /* in  */,
+                    int         max_val         /* in  */,
+                    int         my_rank         /* in  */,
+                    MPI_Comm    comm            /* in  */);
 
-void Print_vector(  double      local_vec[]     /* in  */,
+void Print_vector(  int         local_vec[]     /* in  */,
                     int         local_n         /* in  */,
                     int         n               /* in  */,
                     char        title[]         /* in  */,
                     int         my_rank         /* in  */,
                     MPI_Comm    comm            /* in  */);
 
-void Read_vector(   double      local_a[]       /* out */,
-                    int         local_n         /* in  */,
-                    int         n               /* in  */,
-                    int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
-                    MPI_Comm    comm            /* in  */);
-
-void Read_n(        int*        n_p             /* out */,
+void Read_input(    int*        n_p             /* out */,
                     int*        local_n_p       /* out */,
+                    int*        min_val         /* out */,
+                    int*        max_val         /* out */,
                     int         my_rank         /* in  */,
                     int         comm_sz         /* in  */,
                     MPI_Comm    comm            /* in  */);
@@ -35,7 +33,9 @@ int main(void)
     /* initialize data */
     int n;
     int local_n;
-    double* local_x;
+    int* local_x;
+    int min_val;
+    int max_val;
 
     /* initialize mpi */
     int comm_sz;
@@ -47,70 +47,85 @@ int main(void)
     MPI_Comm_size(comm, &comm_sz);
     MPI_Comm_rank(comm, &my_rank);
 
-
     /* program begin */
-    Read_n(&n, &local_n, my_rank, comm_sz, comm);
+    Read_input(&n, &local_n, &min_val, &max_val, my_rank, comm_sz, comm);
     assert(n);
     assert(local_n == n / comm_sz);
 
-    // initialize custom mpi type
-    MPI_Datatype MPI_VECTOR;
-    MPI_Type_contiguous(local_n, MPI_DOUBLE, &MPI_VECTOR);
-    MPI_Type_commit(&MPI_VECTOR);
-
-    local_x = malloc(local_n * sizeof(double));
-    Read_vector(local_x, local_n, n, my_rank, comm_sz, comm);
-
-    //Sum_vectors(local_x, local_y, local_vec_sum, local_n);
+    local_x = malloc(local_n * sizeof(int));
+    Generate_data(local_x, n, local_n, min_val, max_val, my_rank, comm);
     
     Print_vector(local_x, local_n, n, "Vector X", my_rank, comm);
 
     /* finalize mpi */
+    free(local_x);
     MPI_Finalize();
     return 0;
 }
 
 
-void Prefix_sum(
-    double      local_x[]       /* in/out  */,
-    int         local_n         /* in  */)
+void Generate_data(
+    int         local_x[]       /* out */,
+    int         n               /* in  */,
+    int         local_n         /* in  */,
+    int         min_val         /* in  */,
+    int         max_val         /* in  */,
+    int         my_rank         /* in  */,
+    MPI_Comm    comm            /* in  */)
 {
-    int local_i;
+    int* data = NULL;
+    int i;
 
-    for (local_i = 1; local_i < local_n; local_i++)
+    MPI_Datatype MPI_VECTOR;
+    MPI_Type_contiguous(local_n, MPI_INT, &MPI_VECTOR);
+    MPI_Type_commit(&MPI_VECTOR);
+
+    if (my_rank == 0)
     {
-        local_x[local_i] = local_x[local_i - 1] + local_x[local_i];
+        data = malloc(n * sizeof(int));
+
+        for (i = 0; i < n; i++)
+        {
+            data[i] = min_val + rand() % (max_val - min_val);
+        }
+
+        MPI_Scatter(data, 1, MPI_VECTOR, local_x, 1, MPI_VECTOR, 0, comm);
+
+        free(data);
     }
-} /* Prefix_sum */
+    else
+    {
+        MPI_Scatter(data, 1, MPI_VECTOR, local_x, 1, MPI_VECTOR, 0, comm);
+    }
+} /* Generate_data */
 
 
 void Print_vector(
-    double      local_vec[]     /* in  */,
+    int         local_vec[]     /* in  */,
     int         local_n         /* in  */,
     int         n               /* in  */,
     char        title[]         /* in  */,
     int         my_rank         /* in  */,
     MPI_Comm    comm            /* in  */)
 {
-    double* vec = NULL;
+    int* vec = NULL;
     int i;
 
     MPI_Datatype MPI_VECTOR;
-    MPI_Type_contiguous(local_n, MPI_DOUBLE, &MPI_VECTOR);
+    MPI_Type_contiguous(local_n, MPI_INT, &MPI_VECTOR);
     MPI_Type_commit(&MPI_VECTOR);
 
     if (my_rank == 0)
     {
-        vec = malloc(n * sizeof(double));
+        vec = malloc(n * sizeof(int));
 
-        //MPI_Gather(local_vec, local_n, MPI_DOUBLE, vec, local_n, MPI_DOUBLE, 0, comm);
         MPI_Gather(local_vec, 1, MPI_VECTOR, vec, 1, MPI_VECTOR, 0, comm);
 
         printf("%s\n", title);
 
         for (i = 0; i < n; i++)
         {
-            printf("%f ", vec[i]);
+            printf("%d ", vec[i]);
         }
         printf("\n");
 
@@ -118,55 +133,16 @@ void Print_vector(
     }
     else
     {
-        //MPI_Gather(local_vec, local_n, MPI_DOUBLE, vec, local_n, MPI_DOUBLE, 0, comm);
         MPI_Gather(local_vec, 1, MPI_VECTOR, vec, 1, MPI_VECTOR, 0, comm);
     }
 } /* Print_vector */
 
 
-void Read_vector(
-    double      local_a[]       /* out */,
-    int         local_n         /* in  */,
-    int         n               /* in  */,
-    int         my_rank         /* in  */,
-    int         comm_sz         /* in  */,
-    MPI_Comm    comm            /* in  */)
-{
-    double* a = NULL;
-    int i;
-
-    MPI_Datatype MPI_VECTOR;
-    MPI_Type_contiguous(local_n, MPI_DOUBLE, &MPI_VECTOR);
-    MPI_Type_commit(&MPI_VECTOR);
-
-    if (my_rank == 0)
-    {
-        a = malloc(n * sizeof(double));
-
-        printf("Enter the vector\n");
-        fflush(stdout);
-        
-        for (i = 0; i < n; i++)
-        {
-            scanf("%lf", &a[i]);
-        }
-
-        //MPI_Scatter(a, local_n, MPI_DOUBLE, local_a, local_n, MPI_DOUBLE, 0, comm);
-        MPI_Scatter(a, 1, MPI_VECTOR, local_a, 1, MPI_VECTOR, 0, comm);
-
-        free(a);
-    }
-    else
-    {
-        //MPI_Scatter(a, local_n, MPI_DOUBLE, local_a, local_n, MPI_DOUBLE, 0, comm);
-        MPI_Scatter(a, 1, MPI_VECTOR, local_a, 1, MPI_VECTOR, 0, comm);
-    }
-} /* Read_vectors */
-
-
-void Read_n(
+void Read_input(
     int*        n_p             /* out */,
     int*        local_n_p       /* out */,
+    int*        min_val         /* out */,
+    int*        max_val         /* out */,
     int         my_rank         /* in  */,
     int         comm_sz         /* in  */,
     MPI_Comm    comm            /* in  */)
@@ -175,13 +151,20 @@ void Read_n(
     if (my_rank == 0)
     {
         printf("Enter the size of the vectors\n");
+        fflush(stdout);
         scanf("%d", n_p);
 
         *local_n_p = *n_p / comm_sz;
+
+        printf("Enter the min_val and max_val\n");
+        fflush(stdout);
+        scanf("%d %d", min_val, max_val);
     }
 
-    // broadcast size of vectors
+    // broadcast input
     MPI_Bcast(n_p, 1, MPI_INT, 0, comm);
     MPI_Bcast(local_n_p, 1, MPI_INT, 0, comm);
+    MPI_Bcast(min_val, 1, MPI_INT, 0, comm);
+    MPI_Bcast(max_val, 1, MPI_INT, 0, comm);
 } /* Read_n */
 
