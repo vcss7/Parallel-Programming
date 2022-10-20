@@ -5,6 +5,11 @@
 #include <mpi.h>
 
 
+void Sum_vectors(   double      local_x[]       /* in  */,
+                    double      local_y[]       /* in  */,
+                    double      local_vec_sum[] /* out */,
+                    int         local_n         /* in  */);
+
 void Print_vector(  double      local_vec[]     /* in  */,
                     int         local_n         /* in  */,
                     int         n               /* in  */,
@@ -32,6 +37,7 @@ int main(void)
     int local_n;
     double* local_x;
     double* local_y;
+    double* local_vec_sum;
 
     // initialize mpi
     int comm_sz;
@@ -52,13 +58,32 @@ int main(void)
     local_y = malloc(local_n * sizeof(double));
     Read_vector(local_x, local_n, n, my_rank, comm_sz, comm);
     Read_vector(local_y, local_n, n, my_rank, comm_sz, comm);
+
+    local_vec_sum = malloc(local_n * sizeof(double));
+    Sum_vectors(local_x, local_y, local_vec_sum, local_n);
     
     Print_vector(local_x, local_n, n, "Vector X", my_rank, comm);
     Print_vector(local_y, local_n, n, "Vector Y", my_rank, comm);
+    Print_vector(local_vec_sum, local_n, n, "Vec X + Y", my_rank, comm);
 
     // finalize mpi
     MPI_Finalize();
     return 0;
+}
+
+
+void Sum_vectors(
+    double      local_x[]       /* in  */,
+    double      local_y[]       /* in  */,
+    double      local_vec_sum[] /* out */,
+    int         local_n         /* in  */)
+{
+    int local_i;
+
+    for (local_i = 0; local_i < local_n; local_i++)
+    {
+        local_vec_sum[local_i] = local_x[local_i] + local_y[local_i];
+    }
 }
 
 
@@ -110,9 +135,6 @@ void Read_vector(
     if (my_rank == 0)
     {
         a = malloc(n * sizeof(double));
-
-        printf("The calculation will be done parallel by %d processes.\n", comm_sz);
-        printf("Each process works with %d elements out of %d.\n", local_n, n);
 
         printf("Enter the vector\n");
         fflush(stdout);
