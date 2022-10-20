@@ -5,26 +5,25 @@
 #include <mpi.h>
 
 
-void Print_vector(  double local_vec[],
-                    int local_n,
-                    int n,
-                    char title[],
-                    int my_rank,
-                    MPI_Comm comm);
+void Print_vector(  double      local_vec[]     /* in  */,
+                    int         local_n         /* in  */,
+                    int         n               /* in  */,
+                    char        title[]         /* in  */,
+                    int         my_rank         /* in  */,
+                    MPI_Comm    comm            /* in  */);
 
-void Read_vectors(  double local_x[],
-                    double local_y[],
-                    int local_n,
-                    int my_rank,
-                    int comm_sz,
-                    MPI_Comm comm);
+void Read_vector(   double      local_a[]       /* out */,
+                    int         local_n         /* in  */,
+                    int         n               /* in  */,
+                    int         my_rank         /* in  */,
+                    int         comm_sz         /* in  */,
+                    MPI_Comm    comm            /* in  */);
 
-void Read_n(        int* n_p,
-                    int* local_n_p,
-                    int my_rank,
-                    int comm_sz,
-                    MPI_Comm comm);
-
+void Read_n(        int*        n_p             /* out */,
+                    int*        local_n_p       /* out */,
+                    int         my_rank         /* in  */,
+                    int         comm_sz         /* in  */,
+                    MPI_Comm    comm            /* in  */);
 
 int main(void)
 {
@@ -51,7 +50,8 @@ int main(void)
 
     local_x = malloc(local_n * sizeof(double));
     local_y = malloc(local_n * sizeof(double));
-    Read_vectors(local_x, local_y, local_n, my_rank, comm_sz, comm);
+    Read_vector(local_x, local_n, n, my_rank, comm_sz, comm);
+    Read_vector(local_y, local_n, n, my_rank, comm_sz, comm);
     
     Print_vector(local_x, local_n, n, "Vector X", my_rank, comm);
     Print_vector(local_y, local_n, n, "Vector Y", my_rank, comm);
@@ -63,12 +63,12 @@ int main(void)
 
 
 void Print_vector(
-    double local_vec[],     /* in */
-    int local_n,            /* in */
-    int n,                  /* in */
-    char title[],           /* in */
-    int my_rank,            /* in */
-    MPI_Comm comm           /* in */)
+    double      local_vec[]     /* in  */,
+    int         local_n         /* in  */,
+    int         n               /* in  */,
+    char        title[]         /* in  */,
+    int         my_rank         /* in  */,
+    MPI_Comm    comm            /* in  */)
 {
     double* vec = NULL;
     int i;
@@ -96,65 +96,49 @@ void Print_vector(
 } /* Print_vector */
 
 
-void Read_vectors(
-    double local_x[],       /* out */
-    double local_y[],       /* out */
-    int local_n,            /* in */
-    int my_rank,            /* in */
-    int comm_sz,            /* in */
-    MPI_Comm comm)          /* in */
+void Read_vector(
+    double      local_a[]       /* out */,
+    int         local_n         /* in  */,
+    int         n               /* in  */,
+    int         my_rank         /* in  */,
+    int         comm_sz         /* in  */,
+    MPI_Comm    comm            /* in  */)
 {
-    double* x = NULL;
-    double* y = NULL;
-
-    int n;
+    double* a = NULL;
     int i;
 
     if (my_rank == 0)
     {
-        n = local_n * comm_sz;
-        x = malloc(n * sizeof(double));
-        y = malloc(n * sizeof(double));
+        a = malloc(n * sizeof(double));
 
         printf("The calculation will be done parallel by %d processes.\n", comm_sz);
         printf("Each process works with %d elements out of %d.\n", local_n, n);
 
-        printf("Enter the first vector\n");
+        printf("Enter the vector\n");
         fflush(stdout);
         
         for (i = 0; i < n; i++)
         {
-            scanf("%lf", &x[i]);
+            scanf("%lf", &a[i]);
         }
 
-        printf("Enter the second vector\n");
-        fflush(stdout);
-        
-        for (i = 0; i < n; i++)
-        {
-            scanf("%lf", &y[i]);
-        }
-        
-        MPI_Scatter(x, local_n, MPI_DOUBLE, local_x, local_n, MPI_DOUBLE, 0, comm);
-        MPI_Scatter(y, local_n, MPI_DOUBLE, local_y, local_n, MPI_DOUBLE, 0, comm);
+        MPI_Scatter(a, local_n, MPI_DOUBLE, local_a, local_n, MPI_DOUBLE, 0, comm);
 
-        free(x);
-        free(y);
+        free(a);
     }
     else
     {
-        MPI_Scatter(x, local_n, MPI_DOUBLE, local_x, local_n, MPI_DOUBLE, 0, comm);
-        MPI_Scatter(y, local_n, MPI_DOUBLE, local_y, local_n, MPI_DOUBLE, 0, comm);
+        MPI_Scatter(a, local_n, MPI_DOUBLE, local_a, local_n, MPI_DOUBLE, 0, comm);
     }
 } /* Read_vectors */
 
 
 void Read_n(
-    int* n_p,               /* out */
-    int* local_n_p,         /* out */
-    int my_rank,            /* in */
-    int comm_sz,            /* in */
-    MPI_Comm comm           /* in */)
+    int*        n_p             /* out */,
+    int*        local_n_p       /* out */,
+    int         my_rank         /* in  */,
+    int         comm_sz         /* in  */,
+    MPI_Comm    comm            /* in  */)
 {
     // read size of vectors
     if (my_rank == 0)
@@ -169,5 +153,4 @@ void Read_n(
     MPI_Bcast(n_p, 1, MPI_INT, 0, comm);
     MPI_Bcast(local_n_p, 1, MPI_INT, 0, comm);
 } /* Read_n */
-
 
