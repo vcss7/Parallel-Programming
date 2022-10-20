@@ -5,12 +5,12 @@
 #include <mpi.h>
 
 
-void Generate_data( int         local_x[]       /* out */,
-                    int         n               /* in  */,
-                    int         local_n         /* in  */,
-                    int         min_val         /* in  */,
-                    int         max_val         /* in  */,
+void Read_input(    int*        n_p             /* out */,
+                    int*        local_n_p       /* out */,
+                    int*        min_val         /* out */,
+                    int*        max_val         /* out */,
                     int         my_rank         /* in  */,
+                    int         comm_sz         /* in  */,
                     MPI_Comm    comm            /* in  */);
 
 void Print_vector(  int         local_vec[]     /* in  */,
@@ -20,12 +20,19 @@ void Print_vector(  int         local_vec[]     /* in  */,
                     int         my_rank         /* in  */,
                     MPI_Comm    comm            /* in  */);
 
-void Read_input(    int*        n_p             /* out */,
-                    int*        local_n_p       /* out */,
-                    int*        min_val         /* out */,
-                    int*        max_val         /* out */,
+void Generate_data( int         local_x[]       /* out */,
+                    int         n               /* in  */,
+                    int         local_n         /* in  */,
+                    int         min_val         /* in  */,
+                    int         max_val         /* in  */,
                     int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
+                    MPI_Comm    comm            /* in  */);
+
+void Prefix_sum(    int         x[]             /* out */,
+                    int         local_x[]       /* in  */,
+                    int         n               /* in  */,
+                    int         local_n         /* in  */,
+                    int         my_rank         /* in  */,
                     MPI_Comm    comm            /* in  */);
 
 int main(void)
@@ -34,6 +41,7 @@ int main(void)
     int n;
     int local_n;
     int* local_x;
+    int* x;
     int min_val;
     int max_val;
 
@@ -54,13 +62,39 @@ int main(void)
 
     local_x = malloc(local_n * sizeof(int));
     Generate_data(local_x, n, local_n, min_val, max_val, my_rank, comm);
-    
     Print_vector(local_x, local_n, n, "Vector X", my_rank, comm);
 
+    x = malloc(n * sizeof(int));
+    Prefix_sum(x, local_x, n, local_n, my_rank, comm);
+    Print_vector(x, local_n, n, "Prefix Sum of Vector X", my_rank, comm);
+
     /* finalize mpi */
+    free(x);
     free(local_x);
     MPI_Finalize();
     return 0;
+}
+
+
+void Prefix_sum(
+    int         x[]             /* out */,
+    int         local_x[]       /* in  */,
+    int         n               /* in  */,
+    int         local_n         /* in  */,
+    int         my_rank         /* in  */,
+    MPI_Comm    comm            /* in  */)
+{
+    int i;
+
+    if (my_rank == 0)
+    {
+        for (i = 0; i < n; i++)
+        {
+            x[i] = 0;
+        }
+    }
+
+    MPI_Scan(local_x, x, local_n, MPI_INT, MPI_SUM, comm);
 }
 
 
