@@ -132,7 +132,7 @@ MPI_Bcast(
 );
 ```
 
-`MPI_Scatter(..)` divides the data referenced by the number of processes inside
+`MPI_Scatter(...)` divides the data referenced by the number of processes inside
 the communicator and sends a part of that data to the processes.
 
 ```
@@ -148,7 +148,7 @@ MPI_Scatter(
 );
 ```
 
-`MPI_Gather` gathers the data referenced and sends it to a destination process
+`MPI_Gather(...)` gathers the data referenced and sends it to a destination process
 inside the communicator.
 
 ```
@@ -160,6 +160,20 @@ MPI_Gather(
     int             recv_count      /* in; num data from each process */
     MPI_Datatype    recv_type       /* in; type of data recv */
     int             dest_proc       /* in; destination process */
+    MPI_Comm        comm            /* in; the communicator to use */
+);
+```
+
+`MPI_Scan(...)` performs a prefix reduction across all MPI processes inside the
+communicator.
+
+```
+MPI_Scan(
+    void*           send_buf_p      /* in; memory location of data being sent */
+    void*           recv_buf_p      /* out; memory location of data recved */
+    int             count           /* in; num data in array */
+    MPI_Datatype    datatype        /* in; datatype in array */
+    MPI_Op          op              /* in; operation to perform on array */
     MPI_Comm        comm            /* in; the communicator to use */
 );
 ```
