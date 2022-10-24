@@ -4,27 +4,23 @@
 #include <mpi.h>
 
 
-void Read_input(    int*        n_p             /* out */,
-                    int*        local_n_p       /* out */,
-                    int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
-                    MPI_Comm    comm            /* in  */);
+void Read_input(    int*            n_p             /* out */,
+                    int*            local_n_p       /* out */,
+                    int             my_rank         /* in  */,
+                    int             comm_sz         /* in  */,
+                    MPI_Comm        comm            /* in  */);
 
-void Read_vector(   int         local_vec[]     /* out */,
-                    int         local_n         /* in  */,
-                    int         n               /* in  */,
-                    char        title[]         /* in  */,
-                    int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
-                    MPI_Comm    comm            /* in  */);
+void Read_vector(   int             local_vec[]     /* out */,
+                    int             n               /* in  */,
+                    int             my_rank         /* in  */,
+                    MPI_Datatype    MPI_VECTOR      /* in  */,
+                    MPI_Comm        comm            /* in  */);
 
-void Print_vector(  int         local_vec[]     /* in  */,
-                    int         local_n         /* in  */,
-                    int         n               /* in  */,
-                    char        title[]         /* in  */,
-                    int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
-                    MPI_Comm    comm            /* in  */);
+void Print_vector(  int             local_vec[]     /* in  */,
+                    int             n               /* in  */,
+                    int             my_rank         /* in  */,
+                    MPI_Datatype    MPI_VECTOR      /* in  */,
+                    MPI_Comm        comm            /* in  */);
 
 int main(void)
 {
@@ -44,11 +40,31 @@ int main(void)
     MPI_Comm_rank(comm, &my_rank);
 
     /* preogram begin */
+    if (my_rank == 0)
+    {
+        printf("Enter order of Vector and Matrix\n");
+    }
     Read_input(&n, &local_n, my_rank, comm_sz, comm);
     local_vec = malloc(local_n * sizeof(int));
 
-    Read_vector(local_vec, local_n, n, "Enter vector", my_rank, comm_sz, comm);
-    Print_vector(local_vec, local_n, n, "Vector V", my_rank, comm_sz, comm);
+    // custom mpi type
+    MPI_Datatype MPI_VECTOR;
+    MPI_Type_contiguous(local_n, MPI_INT, &MPI_VECTOR);
+    MPI_Type_commit(&MPI_VECTOR);
+
+    // grab vector and matrix
+    if (my_rank == 0) 
+    {
+        printf("Enter Vector V\n");
+    }
+    Read_vector(local_vec, n, my_rank, MPI_VECTOR, comm);
+
+    // print data to verify
+    if (my_rank == 0)
+    {
+        printf("Vector V: ");
+    }
+    Print_vector(local_vec, n, my_rank, MPI_VECTOR, comm);
 
     /* finalize mpi */
     free(local_vec);
@@ -57,27 +73,19 @@ int main(void)
 }
 
 void Print_vector(
-    int         local_vec[]     /* in  */,
-    int         local_n         /* in  */,
-    int         n               /* in  */,
-    char        title[]         /* in  */,
-    int         my_rank         /* in  */,
-    int         comm_sz         /* in  */,
-    MPI_Comm    comm            /* in  */)
+    int             local_vec[]     /* in  */,
+    int             n               /* in  */,
+    int             my_rank         /* in  */,
+    MPI_Datatype    MPI_VECTOR      /* in  */,
+    MPI_Comm        comm            /* in  */)
 {
     int* v = NULL;
     int i;
-
-    MPI_Datatype MPI_VECTOR;
-    MPI_Type_contiguous(local_n, MPI_INT, &MPI_VECTOR);
-    MPI_Type_commit(&MPI_VECTOR);
 
     if (my_rank ==0)
     {
         v = malloc(n * sizeof(int));
         MPI_Gather(local_vec, 1, MPI_VECTOR, v, 1, MPI_VECTOR, 0, comm);
-
-        printf("%s\n", title);
 
         for (i = 0; i < n; i++)
         {
@@ -95,27 +103,18 @@ void Print_vector(
 
 
 void Read_vector(
-    int         local_vec[]     /* out */,
-    int         local_n         /* in  */,
-    int         n               /* in  */,
-    char        title[]         /* in  */,
-    int         my_rank         /* in  */,
-    int         comm_sz         /* in  */,
-    MPI_Comm    comm            /* in  */)
+    int             local_vec[]     /* out */,
+    int             n               /* in  */,
+    int             my_rank         /* in  */,
+    MPI_Datatype    MPI_VECTOR      /* in  */,
+    MPI_Comm        comm            /* in  */)
 {
     int* v = NULL;
     int i;
 
-    MPI_Datatype MPI_VECTOR;
-    MPI_Type_contiguous(local_n, MPI_INT, &MPI_VECTOR);
-    MPI_Type_commit(&MPI_VECTOR);
-
     if (my_rank == 0)
     {
         v = malloc(n * sizeof(int));
-
-        printf("%s\n", title);
-        fflush(stdout);
 
         for (i = 0; i < n; i++)
         {
@@ -134,16 +133,14 @@ void Read_vector(
 
 
 void Read_input(
-    int*        n_p             /* out */,
-    int*        local_n_p       /* out */,
-    int         my_rank         /* in  */,
-    int         comm_sz         /* in  */,
-    MPI_Comm    comm            /* in  */)
+    int*            n_p             /* out */,
+    int*            local_n_p       /* out */,
+    int             my_rank         /* in  */,
+    int             comm_sz         /* in  */,
+    MPI_Comm        comm            /* in  */)
 {
     if (my_rank == 0)
     {
-        printf("Enter the order of the square matrix and vector\n");
-        fflush(stdout);
         scanf("%d", n_p);
 
         *local_n_p = *n_p / comm_sz;
