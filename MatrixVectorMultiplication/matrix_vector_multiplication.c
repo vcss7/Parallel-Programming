@@ -34,6 +34,14 @@ void Print_matrix(  int             local_m[]       /* in  */,
                     MPI_Datatype    MPI_MATRIX      /* in  */,
                     MPI_Comm        comm            /* in  */);
 
+void Mat_vec_mult(  int             local_m[]       /* in  */,
+                    int             local_v[]       /* in  */,
+                    int             local_u[]       /* out */,
+                    int             local_n         /* in  */,
+                    int             n               /* in  */,
+                    MPI_Datatype    MPI_VECTOR      /* in  */,
+                    MPI_Comm        comm            /* in  */);
+
 int main(void)
 {
     /* initialize data */
@@ -41,6 +49,7 @@ int main(void)
     int local_n;
     int* local_vec = NULL;
     int* local_matrix = NULL;
+    int* local_res = NULL;
 
     /* initialize mpi */
     int comm_sz;
@@ -60,7 +69,8 @@ int main(void)
     }
     Read_n(&n, &local_n, my_rank, comm_sz, comm);
     local_vec = malloc(local_n * sizeof(int));
-    local_matrix = malloc(local_n * local_n * sizeof(int));
+    local_matrix = malloc((n * n) / comm_sz * sizeof(int));
+    local_res = malloc(local_n * sizeof(int));
 
     // custom mpi types
     MPI_Datatype MPI_VECTOR;
@@ -68,7 +78,7 @@ int main(void)
     MPI_Type_commit(&MPI_VECTOR);
 
     MPI_Datatype MPI_MATRIX;
-    MPI_Type_contiguous(local_n * local_n, MPI_INT, &MPI_MATRIX);
+    MPI_Type_contiguous((n * n)/ comm_sz, MPI_INT, &MPI_MATRIX);
     MPI_Type_commit(&MPI_MATRIX);
 
     // grab vector
@@ -86,24 +96,56 @@ int main(void)
     }
     Read_matrix(local_matrix, n, my_rank, MPI_MATRIX, comm);
 
-    // print data to verify
-    if (my_rank == 0)
-    {
-        printf("Vector V: ");
-    }
-    Print_vector(local_vec, n, my_rank, MPI_VECTOR, comm);
+    // matrix x vector multiplication
+    Mat_vec_mult(local_matrix, local_vec, local_res, local_n, n, MPI_VECTOR, comm);
 
+    // print result
     if (my_rank == 0)
     {
-        printf("Matrix M\n========\n");
+        printf("Result: ");
     }
-    Print_matrix(local_matrix, n, my_rank, MPI_MATRIX, comm);
+    Print_vector(local_res, n, my_rank, MPI_VECTOR, comm);
+
+    /* free allocated memory */
+    free(local_vec);
+    free(local_matrix);
+    free(local_res);
 
     /* finalize mpi */
-    free(local_vec);
     MPI_Finalize();
     return 0;
 } /* main */
+
+
+void Mat_vec_mult(
+    int             local_m[]       /* in  */,
+    int             local_v[]       /* in  */,
+    int             local_u[]       /* out */,
+    int             local_n         /* in  */,
+    int             n               /* in  */,
+    MPI_Datatype    MPI_VECTOR      /* in  */,
+    MPI_Comm        comm            /* in  */)
+{
+    int* x = NULL;
+    int local_i;
+    int j;
+    int curr_m_elem;
+
+    x = malloc(n * sizeof(int));
+    MPI_Allgather(local_v, 1, MPI_VECTOR, x, 1, MPI_VECTOR, comm);
+
+    for (local_i = 0; local_i < local_n; local_i++)
+    {
+        local_u[local_i] = 0;
+        for (j = 0; j < n; j++)
+        {
+            curr_m_elem = local_i * n + j;
+            local_u[local_i] += local_m[curr_m_elem] * x[j];
+        }
+    }
+
+    free(x);
+} /* Mat_vec_mult */
 
 
 void Print_matrix(
@@ -137,6 +179,7 @@ void Print_matrix(
         MPI_Gather(local_m, 1, MPI_MATRIX, m, 1, MPI_MATRIX, 0, comm);
     }
 } /* Print_matrix */
+
 
 void Read_matrix(
     int             local_m[]       /* out */,
