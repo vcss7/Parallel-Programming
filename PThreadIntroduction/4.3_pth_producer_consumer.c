@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
 
     if(argc != 1) Usage(argv[0]);
 
-    thread_count = 2;
+    thread_count = 2000;
 
     /* allocate array for threads */
     thread_handles = malloc(thread_count*sizeof(pthread_t));
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     }
 
     pthread_mutex_destroy(&mutex);
-        free(message);
+    free(message);
     free(thread_handles);
 
     return 0;
@@ -84,19 +84,22 @@ void *Thread_work(void* rank) {
 
     while(1) {
         pthread_mutex_lock(&mutex);
-        if (my_rank == 1) {
+        if (my_rank % 2 == 1) {
             if (msg) {
-                printf("Th %ld > message = %s\n", 
+                printf("Th %ld > recieved message = %s\n", 
                                       my_rank, message);
+                msg = 0;
                 pthread_mutex_unlock(&mutex);
                 break;
             }
         } else {
-            sprintf(message, "hello world");
-            printf("Th %ld > created message\n", my_rank);
-            msg = 1;
-            pthread_mutex_unlock(&mutex);
-            break;
+            if (!msg) {
+                sprintf(message, "from thread %ld", my_rank);
+                printf("Th %ld > modified message \n", my_rank);
+                msg = 1;
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
         }
         pthread_mutex_unlock(&mutex);
     }
