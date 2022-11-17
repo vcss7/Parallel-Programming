@@ -1,4 +1,4 @@
-  #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <pthread.h>
@@ -25,6 +25,17 @@ int main(int argc, char* argv[]) {
 
     /* Get number of threads from command line */
     Get_args(argc, argv);
+
+    /* TODO: Implement Serial Pi Estimate */
+    GET_TIME(start);
+    sum = Serial_pi(n);
+    GET_TIME(finish);
+    elapsed = finish - start;
+
+    printf("Serial Pi Estimate: %lf\n", sum);
+    printf("Took: %lf\n", elapsed);
+
+    /* TODO: Implement Threaded Pi Estimate */
 
     return 0;
 }  /* main */
