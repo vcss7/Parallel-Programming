@@ -25,6 +25,8 @@ int main(int argc, char* argv[]) {
     pthread_t* thread_handles;
     double start, finish, elapsed;
 
+    sem_init(&sem, 0, 1);
+
     /* Get number of threads from command line */
     Get_args(argc, argv);
 
@@ -61,6 +63,8 @@ int main(int argc, char* argv[]) {
     printf("Took: %lf\n", elapsed);
 
     free(thread_handles);
+    sem_destroy(&sem);
+
     return 0;
 }  /* main */
 
@@ -73,6 +77,7 @@ void* Thread_sum(void* rank) {
     long long my_n = n / thread_count;
     long long my_first_i = my_n * my_rank;
     long long my_last_i = my_first_i + my_n;
+    double my_sum = 0.0;
 
     if (my_first_i % 2 == 0)    /* my_first_i is even */
         factor = 1.0;
@@ -81,8 +86,12 @@ void* Thread_sum(void* rank) {
 
     for (i = my_first_i; i < my_last_i; i++, factor = -factor)
     {
-        sum += factor / (2 * i + 1);
+        my_sum += factor / (2 * i + 1);
     }
+
+    sem_wait(&sem);
+    sum += my_sum;
+    sem_post(&sem);
 
     return NULL;
 }  /* Thread_sum */
