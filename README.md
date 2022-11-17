@@ -59,6 +59,33 @@ int pthread_create(
     void*                   (*start_routine)(void*) /* in  */,
     void*                   args_p                  /* in  */);
 ```
+The `thread_p` is the address of the pthread_t object we will use. The
+`start_routine` is a pointer to the funtion the thread will run. The `args_p` is
+a pointer to the arguments for the thread function (i.e. `start_routine`) that
+the thread will execute.
+
+Its possible to pass multiple arguments by creating a struct type with the
+argument variables and then passing the struct as the argument.
+
+Threads created do not all need to run the same program, but throughout these
+projects, the "single program, multiple data" style parallelism will be used.
+
+To stop a node when it is done executing we use the `pthread_join(...)` function
+from the pthread.h API
+```
+int pthread_join(
+    pthread_t   thread      /* in  */,
+    void**      ret_val_p   /* out */);
+```
+
+The first argument, `thread`, is the thread to join back to the main branch and
+the second argument, `ret_val_p` is the location in which to store the return
+value of the thread (can be `NULL`).
+
+It is important to remember to join the threads back to the main branch because
+each thread uses up some amounts of resources. If left unchecked, the thread
+will hold on to those resources and perhaps prevent the creation of other
+threads.
 
 
 ### Install Pthreads
@@ -91,4 +118,5 @@ In general, limit the number of global variables.
 
 
 #### Critical Sections
+
 
