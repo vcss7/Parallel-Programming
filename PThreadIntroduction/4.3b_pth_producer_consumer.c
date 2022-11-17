@@ -31,7 +31,7 @@ const int MAX_STRING = 99;
 int thread_count;
 int msg = 0;
 char* message;
-int receiver = 0;
+long receiver = 0;
 pthread_mutex_t mutex;
 
 void Usage(char* progname);
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 
     if(argc != 1) Usage(argv[0]);
 
-    thread_count = 4;
+    thread_count = 6;
 
     /* allocate array for threads */
     thread_handles = malloc(thread_count*sizeof(pthread_t));
@@ -85,30 +85,32 @@ void *Thread_work(void* rank) {
     int send = 1;   /* send > 0 if sending */
     int recv = 1;   /* recv > 0 if receiving */
 
-    while(send && recv) {
+    while(send || recv) {
         pthread_mutex_lock(&mutex);
         
-        printf("my_rank = %ld\n", my_rank);
-        printf("receiver = %d\n", receiver);
-        if (my_rank == ((my_rank - 1 + thread_count) % thread_count))
+        //printf("my_rank = %ld\n", my_rank);
+        //receiver = (my_rank + 1) % thread_count;
+        //printf("receiver = %ld\n", receiver);
+        //sender = (my_rank - 1 + thread_count) % thread_count;
+        //printf("sender = %ld\n", sender);
+
+        if (!msg)
         {
-            if (!msg)
-            {
-                receiver = (my_rank + 1) % thread_count;
-                sprintf(message, "hello from rank %ld", my_rank);
-                msg = 1;
-                pthread_mutex_unlock(&mutex);
-                send = 0;
-            }
+            receiver = (my_rank + 1) % thread_count;
+            sprintf(message, "hello from rank %ld", my_rank);
+            msg = 1;
+            send = 0;
+            pthread_mutex_unlock(&mutex);
         }
-        else if (my_rank == receiver)
+
+        if (my_rank == receiver)
         {
             if (msg)
             {
-                printf("Th %ld > Received: %s", my_rank, message);
+                printf("Th %ld > Received: %s\n", my_rank, message);
                 msg = 0;
-                pthread_mutex_unlock(&mutex);
                 recv = 0;
+                pthread_mutex_unlock(&mutex);
             }
         }
 
