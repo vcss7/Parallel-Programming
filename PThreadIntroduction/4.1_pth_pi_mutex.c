@@ -34,10 +34,13 @@ int main(int argc, char* argv[]) {
     elapsed = finish - start;
 
     printf("Serial Pi Estimate: %lf\n", sum);
+    //printf("Started at: %lf\n", start);
+    //printf("Finished at: %lf\n", finish);
     printf("Took: %lf\n", elapsed);
 
-    /* TODO: Implement Threaded Pi Estimate */
+    /* Threaded Pi Estimate */
     sum = 0;
+    printf("Before executing threaded version, sum = %lf\n", sum);
     thread_handles = malloc(thread_count * sizeof(pthread_t));
     GET_TIME(start);
     for (thread = 0; thread < thread_count; thread++)
@@ -49,9 +52,14 @@ int main(int argc, char* argv[]) {
     {
         pthread_join(thread_handles[thread], NULL);
     }
+
+    sum = 4 * sum;
     GET_TIME(finish);
+    elapsed = finish - start;
 
     printf("Threaded Pi Estimate: %lf\n", sum);
+    //printf("Started at: %lf\n", start);
+    //printf("Finished at: %lf\n", finish);
     printf("Took: %lf\n", elapsed);
 
     free(thread_handles);
@@ -61,7 +69,25 @@ int main(int argc, char* argv[]) {
 
 /*------------------------------------------------------------------*/
 void* Thread_sum(void* rank) {
-   
+    long my_rank = (long) rank;
+    double factor;
+    long long i;
+    long long my_n = n / thread_count;
+    long long my_first_i = my_n * my_rank;
+    long long my_last_i = my_first_i + my_n;
+
+    if (my_first_i % 2 == 0)    /* my_first_i is even */
+        factor = 1.0;
+    else
+        factor = -1.0;
+
+    for (i = my_first_i; i < my_last_i; i++, factor = -factor)
+    {
+        pthread_mutex_lock(&mutex);
+        sum += factor / (2 * i + 1);
+        pthread_mutex_unlock(&mutex);
+    }
+
     return NULL;
 }  /* Thread_sum */
 
