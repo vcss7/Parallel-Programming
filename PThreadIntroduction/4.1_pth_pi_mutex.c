@@ -26,7 +26,8 @@ int main(int argc, char* argv[]) {
     /* Get number of threads from command line */
     Get_args(argc, argv);
 
-    /* TODO: Implement Serial Pi Estimate */
+    /* Serial Pi Estimate */
+    sum = 0;
     GET_TIME(start);
     sum = Serial_pi(n);
     GET_TIME(finish);
@@ -36,7 +37,24 @@ int main(int argc, char* argv[]) {
     printf("Took: %lf\n", elapsed);
 
     /* TODO: Implement Threaded Pi Estimate */
+    sum = 0;
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
+    GET_TIME(start);
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_create(&thread_handles[thread], NULL, Thread_sum, (void*) thread);
+    }
 
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_join(thread_handles[thread], NULL);
+    }
+    GET_TIME(finish);
+
+    printf("Threaded Pi Estimate: %lf\n", sum);
+    printf("Took: %lf\n", elapsed);
+
+    free(thread_handles);
     return 0;
 }  /* main */
 
