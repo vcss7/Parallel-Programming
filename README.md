@@ -50,6 +50,17 @@ Some things to consider are:
 Shared Memory programming can be implemented by using POSIX threads.
 
 
+### Using Pthreads API
+To create a thread, we use the pthread.h API
+```
+int pthread_create(
+    pthread_t*              thread_p                /* out */,
+    const pthread_attr_t*   attr_p                  /* in  */,
+    void*                   (*start_routine)(void*) /* in  */,
+    void*                   args_p                  /* in  */);
+```
+
+
 ### Install Pthreads
 Pthreads are available on most POSIX compliant Unix systems.
 
@@ -68,6 +79,15 @@ To run
 
 
 ### Potential Problems with Shared Memory Programming
+
+#### Global Variables
+Global variables may cause a program to not have any errors if there is a
+function that uses a local variable of the same name. If, for example, a
+function changes the global variable when it intended to change the local
+variable, this is a logical error, but this will not produce a compile or
+runtime error.
+
+In general, limit the number of global variables.
 
 
 #### Critical Sections
