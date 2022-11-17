@@ -31,6 +31,7 @@ const int MAX_STRING = 99;
 int thread_count;
 int msg = 0;
 char* message;
+int receiver = 0;
 pthread_mutex_t mutex;
 
 void Usage(char* progname);
@@ -46,7 +47,7 @@ int main(int argc, char* argv[]) {
 
     if(argc != 1) Usage(argv[0]);
 
-    thread_count = 2000;
+    thread_count = 4;
 
     /* allocate array for threads */
     thread_handles = malloc(thread_count*sizeof(pthread_t));
@@ -81,26 +82,36 @@ int main(int argc, char* argv[]) {
 
 void *Thread_work(void* rank) {
     long my_rank = (long) rank;
+    int send = 1;   /* send > 0 if sending */
+    int recv = 1;   /* recv > 0 if receiving */
 
-    while(1) {
+    while(send && recv) {
         pthread_mutex_lock(&mutex);
-        if (my_rank % 2 == 1) {
-            if (msg) {
-                printf("Th %ld > recieved message = %s\n", 
-                                      my_rank, message);
-                msg = 0;
-                pthread_mutex_unlock(&mutex);
-                break;
-            }
-        } else {
-            if (!msg) {
-                sprintf(message, "from thread %ld", my_rank);
-                printf("Th %ld > modified message \n", my_rank);
+        
+        printf("my_rank = %ld\n", my_rank);
+        printf("receiver = %d\n", receiver);
+        if (my_rank == ((my_rank - 1 + thread_count) % thread_count))
+        {
+            if (!msg)
+            {
+                receiver = (my_rank + 1) % thread_count;
+                sprintf(message, "hello from rank %ld", my_rank);
                 msg = 1;
                 pthread_mutex_unlock(&mutex);
-                break;
+                send = 0;
             }
         }
+        else if (my_rank == receiver)
+        {
+            if (msg)
+            {
+                printf("Th %ld > Received: %s", my_rank, message);
+                msg = 0;
+                pthread_mutex_unlock(&mutex);
+                recv = 0;
+            }
+        }
+
         pthread_mutex_unlock(&mutex);
     }
 
