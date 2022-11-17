@@ -40,36 +40,36 @@ void* Thread_work(void* rank);
 
 /*-----------------------------------------------------------------*/
 int main(int argc, char* argv[]) {
-	long thread;
-	pthread_t* thread_handles;
-	message = malloc(MAX_STRING*sizeof(char));
-	
-	if(argc != 1) Usage(argv[0]);
-	
-	thread_count = 2;
-	
-	/* allocate array for threads */
-	thread_handles = malloc(thread_count*sizeof(pthread_t));
-	
-	/* initialize mutex */
-	pthread_mutex_init(&mutex, NULL);
-	
-	/* start threads */
-	for(thread = 0; thread < thread_count; thread++) {
-		pthread_create(&thread_handles[thread], NULL, Thread_work, 
-					   (void*) thread);
-	}
-	
-	/* wait for threads to complete */
-	for(thread = 0; thread < thread_count; thread++) {
-		pthread_join(thread_handles[thread], NULL);
-	}
-	
-	pthread_mutex_destroy(&mutex);
+    long thread;
+    pthread_t* thread_handles;
+    message = malloc(MAX_STRING*sizeof(char));
+
+    if(argc != 1) Usage(argv[0]);
+
+    thread_count = 2;
+
+    /* allocate array for threads */
+    thread_handles = malloc(thread_count*sizeof(pthread_t));
+
+    /* initialize mutex */
+    pthread_mutex_init(&mutex, NULL);
+
+    /* start threads */
+    for(thread = 0; thread < thread_count; thread++) {
+        pthread_create(&thread_handles[thread], NULL, Thread_work, 
+                       (void*) thread);
+    }
+
+    /* wait for threads to complete */
+    for(thread = 0; thread < thread_count; thread++) {
+        pthread_join(thread_handles[thread], NULL);
+    }
+
+    pthread_mutex_destroy(&mutex);
         free(message);
-	free(thread_handles);
-	
-	return 0;
+    free(thread_handles);
+
+    return 0;
 }
 /*-------------------------------------------------------------------
  * Function:    Thread_work
@@ -80,28 +80,28 @@ int main(int argc, char* argv[]) {
  */
 
 void *Thread_work(void* rank) {
-	long my_rank = (long) rank;
-	
-	while(1) {
-		pthread_mutex_lock(&mutex);
-		if (my_rank == 1) {
-			if (msg) {
-				printf("Th %ld > message = %s\n", 
+    long my_rank = (long) rank;
+
+    while(1) {
+        pthread_mutex_lock(&mutex);
+        if (my_rank == 1) {
+            if (msg) {
+                printf("Th %ld > message = %s\n", 
                                       my_rank, message);
-				pthread_mutex_unlock(&mutex);
-				break;
-			}
-		} else {
-			sprintf(message, "hello world");
-			printf("Th %ld > created message\n", my_rank);
-			msg = 1;
-			pthread_mutex_unlock(&mutex);
-			break;
-		}
-		pthread_mutex_unlock(&mutex);
-	}
-	
-	return NULL;
+                pthread_mutex_unlock(&mutex);
+                break;
+            }
+        } else {
+            sprintf(message, "hello world");
+            printf("Th %ld > created message\n", my_rank);
+            msg = 1;
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
+        pthread_mutex_unlock(&mutex);
+    }
+
+    return NULL;
 }
 
 
@@ -113,6 +113,6 @@ void *Thread_work(void* rank) {
 
 void Usage(char* progname)
 {
-	fprintf(stderr, "Usage: %s \n", progname);
-	exit(0);
+    fprintf(stderr, "Usage: %s \n", progname);
+    exit(0);
 }
