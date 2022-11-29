@@ -4,22 +4,26 @@
 
 const int MAX_THREADS = 1024;
 
-long thread_count;
-long long n;
+long        thread_count;
+int         n;
+int*        vector = NULL;
+int*        matrix = NULL;
+int*        result = NULL;
+
 
 void Usage(char* prog_name);
 void Get_args(int argc, char* argv[]);
 void Read_n();
-void Read_vector(int* vector);
-void Print_vector(int* vector);
-void Read_matrix(int* matrix);
-void Print_matrix(int* matrix);
+void Read_vector();
+void Print_vector(int v[]);
+void Read_matrix();
+void Print_matrix();
+void* Pth_mat_vect(void* rank);
 
 int main(int argc, char* argv[])
 {
-    long        thread;
-    int*        vector = NULL;
-    int*        matrix = NULL;
+    long thread;
+    pthread_t* thread_handles;
     
     Get_args(argc, argv);
 
@@ -29,16 +33,72 @@ int main(int argc, char* argv[])
     // memory allocation
     vector = malloc(n * sizeof(int));
     matrix = malloc(n * n * sizeof(int));
+    result = malloc(n * sizeof(int));
 
     // read input vector and matrix
-    Read_vector(vector);
-    Read_matrix(matrix);
-    Print_vector(vector);
-    Print_matrix(matrix);
+    Read_vector();
+    Read_matrix();
 
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_create(&thread_handles[thread], NULL, Pth_mat_vect, (void*) thread);
+    }
+
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_join(thread_handles[thread], NULL);
+    }
+
+    Print_vector(result);
+
+    free(thread_handles);
     free(vector);
     free(matrix);
     return 0;
+}
+
+
+/*------------------------------------------------------------------            
+* Function:    Pth_mat_vect
+* Purpose:     Calculate matrix x vector multiplication with pthreads
+* In args:     my_rank
+* Out args:    NULL
+*/ 
+void* Pth_mat_vect(void* rank)
+{
+    long my_rank = (long) rank;
+    int i;
+    int j;
+    int local_m = n / thread_count;
+    int my_first_row = my_rank * local_m;
+    int my_last_row = (my_rank + 1) * local_m - 1;
+
+    int local_i;
+    int* local_result = NULL;
+    local_result = malloc(local_m * sizeof(int));
+
+    local_i = my_last_row - my_first_row;
+    for (i = my_first_row; i <= my_last_row; i++, local_i++)
+    {
+        local_result[local_i] = 0.0;
+        for (j = 0; j < n; j++)
+        {
+            local_result[local_i] += matrix[i * n + j] * vector[j];
+        }
+    }
+
+    Print_vector(local_result);
+
+    for (i = my_first_row; i <= my_last_row; i++)
+    {
+        for (local_i = 0; local_i <= my_last_row - my_first_row; local_i++)
+        {
+            result[i] = local_result[local_i];
+        }
+    }
+
+    return NULL;
 }
 
 
@@ -48,7 +108,7 @@ int main(int argc, char* argv[])
 * In args:     *matrix
 * Out args:    *matrix
 */ 
-void Print_matrix(int* matrix)
+void Print_matrix()
 {
     int i;
     int j;
@@ -70,7 +130,7 @@ void Print_matrix(int* matrix)
 * In args:     *matrix
 * Out args:    *matrix
 */ 
-void Read_matrix(int* matrix)
+void Read_matrix()
 {
     int i;
     int j;
@@ -93,13 +153,13 @@ void Read_matrix(int* matrix)
 * Purpose:     Print vector to stdin
 * In args:     vector
 */ 
-void Print_vector(int* vector)
+void Print_vector(int v[])
 {
     int i;
 
     for (i = 0; i < n; i++)
     {
-        printf("%d ", vector[i]);
+        printf("%d ", v[i]);
     }
     printf("\n");
 } /* Print_vector */
@@ -110,7 +170,7 @@ void Print_vector(int* vector)
 * Purpose:     Get the Vector from stdout
 * In args:     None
 */ 
-void Read_vector(int* vector)
+void Read_vector()
 {
     int i;
 
@@ -135,7 +195,7 @@ void Read_n()
     printf("Enter the order of the Vector and Matrix: ");
     fflush(stdout);
 
-    scanf("%lld", &n);
+    scanf("%d", &n);
 } /* Read_n */
 
 
