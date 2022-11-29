@@ -61,7 +61,7 @@ int main(void)
     MPI_Comm_size(comm, &comm_sz);
     MPI_Comm_rank(comm, &my_rank);
 
-    /* preogram begin */
+    /* program begin */
     if (my_rank == 0)
     {
         printf("Enter order of Vector and Matrix: ");

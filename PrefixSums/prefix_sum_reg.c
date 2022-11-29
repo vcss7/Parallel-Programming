@@ -33,7 +33,6 @@ void Prefix_sum(    int         x[]             /* out */,
                     int         n               /* in  */,
                     int         local_n         /* in  */,
                     int         my_rank         /* in  */,
-                    int         comm_sz         /* in  */,
                     MPI_Comm    comm            /* in  */);
 
 int main(void)
@@ -66,7 +65,7 @@ int main(void)
     Print_vector(local_x, local_n, n, "Vector X", my_rank, comm);
 
     x = malloc(n * sizeof(int));
-    Prefix_sum(x, local_x, n, local_n, my_rank, comm_sz, comm);
+    Prefix_sum(x, local_x, n, local_n, my_rank, comm);
     Print_vector(x, local_n, n, "Prefix Sum of Vector X", my_rank, comm);
 
     /* finalize mpi */
@@ -83,24 +82,10 @@ void Prefix_sum(
     int         n               /* in  */,
     int         local_n         /* in  */,
     int         my_rank         /* in  */,
-    int         comm_sz         /* in  */,
     MPI_Comm    comm            /* in  */)
 {
     int i;
-    int loop_count;
 
-    if (my_rank == 0)
-    {
-        for (i = 0; i < n; i++)
-        {
-            x[i] = 0;
-        }
-    }
-
-    for (loop_count = 0; loop_count < n / comm_sz; loop_count++)
-    {
-        MPI_Scan(local_x, x, local_n, MPI_INT, MPI_SUM, comm);
-    }
 }
 
 
