@@ -117,6 +117,28 @@ runtime error.
 In general, limit the number of global variables.
 
 
-#### Critical Sections
+## OpenMP
+OpenMP(Open Multiprocessing) is an API for shared-memory MIMD(Multiple
+Instruction, Multiple Data). It is a system that allows each process (or thread)
+access to all available memory.
 
+OpenMP is designed to allow a programmer to easily parallelize an already
+existing serial program.
+
+
+### Compiling and Running an OpenMP Program
+OpenMP uses preprocessor directives to allow behaviour that is not part of the C
+programming language.
+
+```
+# compiling
+gcc -g -Wall -fopenmp -o program.out program.c
+```
+
+How a program behaves is compiler dependent and, if, a parallel functionality is
+not supported, then the program *should* run as a serial program.
+```
+# running 
+./program.out <args>
+```
 
