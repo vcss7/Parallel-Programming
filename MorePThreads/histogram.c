@@ -1,19 +1,24 @@
+#include <assert.h>
+#include <mpi.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mpi.h>
-#include <assert.h>
 
+/* Global variables */
+const int MAX_THREADS = 1024;
+int thread_count;
+pthread_mutex_t mutex;
+
+void Usage(char* prog_name);
+void Get_args(int argc, char* argv[]);
 void Read_input(int *bin_count_p, int *local_bin_count_p, int *data_count_p,
-        int *local_data_count_p, float *min_meas_p, float *max_meas_p,
-        int my_rank, int comm_sz, MPI_Comm comm);
-void Get_input(int *bin_count_p, float *min_meas_p, float *max_meas_p, int *data_count_p,
-        int* local_data_count_p, int my_rank, int comm_sz, MPI_Comm comm);
-void Generate_data(float local_data[], int local_data_count, int data_count,
-        float min_meas, float max_meas, int my_rank, MPI_Comm comm);
-void Print_data(float local_data[], int local_data_count, int data_count,
-        char title[], int my_rank, MPI_Comm comm);
+        int *local_data_count_p, float *min_meas_p, float *max_meas_p);
 
+void Generate_data(int data_count, float data[], float min_meas, float max_meas);
+void Print_data(float data[], int data_count, char title[]);
+
+/*
 void Set_subintervals(float bin_mins[], float bin_maxes[], float min_meas, 
         float max_meas, int bin_count, int my_rank, MPI_Comm comm);
 void Build_histogram(float local_data[], int local_data_count, float bin_mins[],
@@ -21,12 +26,11 @@ void Build_histogram(float local_data[], int local_data_count, float bin_mins[],
         float max_meas);
 void Print_histogram(float bin_mins[], float bin_maxes[], int bin_count,
         int bin_counts[], int my_rank, MPI_Comm comm);
+*/
 
 
-int main(void)
+int main(int argc, char* argv[])
 {
-    int my_rank, comm_sz;
-
     int bin_count, local_bin_count, *bin_counts;
     float min_meas, max_meas;
     int data_count, local_data_count;
@@ -34,16 +38,23 @@ int main(void)
     float* bin_mins, * bin_maxes;
     //int* bin_counts, local_bin_counts;
 
+    /*
     MPI_Init(NULL, NULL);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_sz);
+    */
 
     /* Start of Program */
 
+    Get_args(argc, argv);
     Read_input(&bin_count, &local_bin_count, &data_count, &local_data_count,
-            &min_meas, &max_meas, my_rank, comm_sz, MPI_COMM_WORLD);
+            &min_meas, &max_meas);
 
     data = malloc(data_count * sizeof(float));
+    Generate_data(data_count, data,  min_meas, max_meas);
+    Print_data(data, data_count, "init data");
+
+    /*
     local_data = malloc(local_data_count * sizeof(float));
     bin_mins = malloc(bin_count * sizeof(float));
     bin_maxes = malloc(bin_count * sizeof(float));
@@ -55,7 +66,6 @@ int main(void)
         bin_counts[i] = 0;
     }
 
-    Generate_data(local_data, local_data_count, data_count, min_meas, max_meas, my_rank, MPI_COMM_WORLD);
 
     Set_subintervals(bin_mins, bin_maxes, min_meas, max_meas, bin_count, my_rank, MPI_COMM_WORLD);
     Build_histogram(local_data, local_data_count, bin_mins, bin_maxes,
@@ -63,13 +73,71 @@ int main(void)
 
     Print_data(local_data, local_data_count, data_count, "histogram data", my_rank, MPI_COMM_WORLD);
     Print_histogram(bin_mins, bin_maxes, bin_count, bin_counts, my_rank, MPI_COMM_WORLD);
+    */
 
-    /* End of Program */
 
-    MPI_Finalize();
+    //MPI_Finalize();
+
+    free(data);
     return 0;
 } /* main */
 
+
+void Print_data(
+        float data[], 
+        int data_count, 
+        char title[])
+{
+    int i;
+
+    printf("%s\n", title);
+
+    for (i = 0; i < data_count; i++)
+    {
+        printf("%f ", data[i]);
+    }
+    printf("\n");
+}
+
+
+void Generate_data(
+        int data_count,
+        float data[],
+        float min_meas,
+        float max_meas)
+{
+    int i;
+    float rand_float;
+
+    for (i = 0; i < data_count; i++)
+    {
+        rand_float = (float) rand() / (float) RAND_MAX;
+        data[i] = min_meas + rand_float * (max_meas - min_meas);
+    }
+}
+
+
+void Read_input(
+        int *bin_count_p,           /* out */
+        int *local_bin_count_p,     /* out */
+        int *data_count_p,          /* out */
+        int *local_data_count_p,    /* out */
+        float *min_meas_p,          /* out */
+        float *max_meas_p           /* out */)
+{
+    printf("Enter the min_meas, max_meas, bin_count, data_count\n");
+    fflush(stdout);
+    scanf("%f %f %d %d", min_meas_p, max_meas_p, bin_count_p, data_count_p);
+
+    *local_bin_count_p = *bin_count_p / thread_count;
+    *local_data_count_p = *data_count_p / thread_count;
+
+    printf("\nThe sorting of the numbers will be done parallel\n");
+    printf("This program will use %d threads\n", thread_count);
+    printf("Each thread will sort %d numbers out of %d\n", *local_bin_count_p, *bin_count_p);
+}
+
+/*
 void Print_histogram(float bin_mins[], float bin_maxes[], int bin_count,
         int bin_counts[], int my_rank, MPI_Comm comm)
 {
@@ -123,105 +191,19 @@ void Set_subintervals(float bin_mins[], float bin_maxes[], float min_meas,
         bin_mins[i] = min_meas + interval * (float) (i);
         bin_maxes[i] = min_meas + interval * (float) (i + 1);
     }
-} /* Set_subintervals */
-
-
-void Read_input(
-        int *bin_count_p,           /* out */
-        int *local_bin_count_p,     /* out */
-        int *data_count_p,          /* out */
-        int *local_data_count_p,    /* out */
-        float *min_meas_p,          /* out */
-        float *max_meas_p,          /* out */
-        int my_rank,
-        int comm_sz,
-        MPI_Comm comm)
-{
-    if (my_rank == 0)
-    {
-        printf("Enter the min_meas, max_meas, bin_count, data_count\n");
-        fflush(stdout);
-        scanf("%f %f %d %d", min_meas_p, max_meas_p, bin_count_p, data_count_p);
-
-        *local_bin_count_p = *bin_count_p / comm_sz;
-        *local_data_count_p = *data_count_p / comm_sz;
-
-        printf("\nThe sorting of the numbers will be done parallel\n");
-        printf("This program will use %d processes\n", comm_sz);
-        printf("Each process will sort %d numbers out of %d\n", *local_bin_count_p, *bin_count_p);
-    }
-
-    MPI_Bcast(bin_count_p, 1, MPI_INT, 0, comm);
-    MPI_Bcast(local_bin_count_p, 1, MPI_INT, 0, comm);
-    MPI_Bcast(data_count_p, 1, MPI_INT, 0, comm);
-    MPI_Bcast(local_data_count_p, 1, MPI_INT, 0, comm);
-    MPI_Bcast(min_meas_p, 1, MPI_FLOAT, 0, comm);
-    MPI_Bcast(max_meas_p, 1, MPI_FLOAT, 0, comm);
 }
+*/
 
 
-void Generate_data(
-        float local_data[],
-        int local_data_count,
-        int data_count,
-        float min_meas,
-        float max_meas,
-        int my_rank,
-        MPI_Comm comm)
-{
-    float *data;
-
-    if (my_rank == 0)
-    {
-        data = malloc(data_count * sizeof(float));
-
-        int i;
-        float rand_float;
-
-        for (i = 0; i < data_count; i++)
-        {
-            rand_float = (float) rand() / (float) RAND_MAX;
-            data[i] = min_meas + rand_float * (max_meas - min_meas);
-        }
-
-        MPI_Scatter(data, local_data_count, MPI_FLOAT, local_data, local_data_count, MPI_FLOAT, 0, comm);
-
-        free(data);
-    }
-    else
-    {
-        MPI_Scatter(data, local_data_count, MPI_FLOAT, local_data, local_data_count, MPI_FLOAT, 0, comm);
-    }
-}
+void Get_args(int argc, char* argv[]) {                                         
+     if (argc != 2) Usage(argv[0]);                                             
+     thread_count = strtol(argv[1], NULL, 10);                                  
+     if (thread_count <= 0 || thread_count > MAX_THREADS) Usage(argv[0]);       
+ }  /* Get_args */
 
 
-void Print_data(float local_data[], int local_data_count, int data_count,
-        char title[], int my_rank, MPI_Comm comm)
-{
-    float *a = NULL;
-    int i;
-
-    if (my_rank == 0)
-    {
-        a = malloc(data_count * sizeof(float));
-
-        MPI_Gather(local_data, local_data_count, MPI_FLOAT, a, local_data_count,
-                MPI_FLOAT, 0, comm);
-
-        printf("%s\n", title);
-
-        for (i = 0; i < data_count; i++)
-        {
-            printf("%f ", a[i]);
-        }
-        printf("\n");
-
-        free(a);
-    }
-    else
-    {
-        MPI_Gather(local_data, local_data_count, MPI_FLOAT, a, local_data_count,
-                MPI_FLOAT, 0, comm);
-    }
-}
-
+void Usage(char* prog_name)                                                    
+{                                                                              
+    fprintf(stderr, "usage: %s <number of threads>\n", prog_name);             
+    exit(0);                                                                   
+} /* Usage */ 
