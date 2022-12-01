@@ -88,8 +88,6 @@ void* Pth_mat_vect(void* rank)
         }
     }
 
-    Print_vector(local_result);
-
     for (i = my_first_row; i <= my_last_row; i++)
     {
         for (local_i = 0; local_i <= my_last_row - my_first_row; local_i++)
