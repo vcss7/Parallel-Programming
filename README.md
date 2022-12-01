@@ -142,3 +142,7 @@ not supported, then the program *should* run as a serial program.
 ./program.out <args>
 ```
 
+### Using the OpenMP API
+OpenMP provides preprocessor directives and macros that can be accessed by
+including the `omp.h` header file.
+
