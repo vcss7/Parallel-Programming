@@ -9,6 +9,9 @@ long thread_count;
 double start_point;
 double end_point;
 int num_subints;
+int local_num_subints;
+double total;
+
 
 
 void Get_input(double* start_p, double* end_p, int* n_p);
@@ -19,18 +22,28 @@ void Get_args(int argc, char* argv[]);
 
 int main (int argc, char* argv[])
 {
+    double height;
+
     Get_args(argc, argv);
 
-    printf("start_point = %lf\n", start_point);
-    printf("end_point = %lf\n", end_point);
-    printf("num_subints = %d\n", num_subints);
+    height = (end_point - start_point) / num_subints;
+    local_num_subints = num_subints / thread_count;
+    
 
     return 0;
 }
 
 
-void* Trap()
+void* Trap(void* rank)
 {
+    long my_rank = (long) rank;
+    double estimate, x;
+    int i;
+
+    double local_start_point;
+    double local_end_point;
+
+
     return NULL;
 }
 
