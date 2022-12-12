@@ -2,19 +2,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/* Thread values */
 const int MAX_THREADS = 1024;
-
 long thread_count;
+pthread_mutex_t mutex;
 
+/* global variables */
+double height;
 double start_point;
 double end_point;
 int num_subints;
 int local_num_subints;
-double total;
+double total_integral;
 
 
-
-void Get_input(double* start_p, double* end_p, int* n_p);
+/* functions */
+void* Trap(void* rank);
 double Func(double x);
 void Usage(char* prog_name);
 void Get_args(int argc, char* argv[]);
@@ -22,18 +25,43 @@ void Get_args(int argc, char* argv[]);
 
 int main (int argc, char* argv[])
 {
-    double height;
-
     Get_args(argc, argv);
+
+    total_integral = 0;
 
     height = (end_point - start_point) / num_subints;
     local_num_subints = num_subints / thread_count;
+
+    long thread;
+    pthread_t* thread_handles;
     
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
+
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_create(&thread_handles[thread], NULL, Trap, (void*) thread);
+    }
+
+    for (thread = 0; thread < thread_count; thread++)
+    {
+        pthread_join(thread_handles[thread], NULL);
+    }
+
+    printf("Trapeziod Rule Area Estimateion: %lf\n", total_integral);
+
+    free(thread_handles);
 
     return 0;
 }
 
 
+/*------------------------------------------------------------------
+ * Function:    Trap
+ * Purpose:     Use as a working function for a thread to calculate a section of
+ *              the area under its section of a function
+ * In args:     rank
+ * Globals out: 
+ */
 void* Trap(void* rank)
 {
     long my_rank = (long) rank;
@@ -43,28 +71,47 @@ void* Trap(void* rank)
     double local_start_point;
     double local_end_point;
 
+    local_start_point = start_point + my_rank * local_num_subints * height;
+    local_end_point = local_start_point + local_num_subints * height;
+    
+    printf("Th %ld > start: %lf | end: %lf\n", my_rank, local_start_point, local_end_point);
 
+    estimate = 0;
+    estimate = (Func(local_end_point) + Func(local_start_point)) / 2.0;
+    for (i = 1; i < local_num_subints; i++)
+    {
+        x = local_start_point + i * height;
+        estimate += Func(x);
+    }
+    estimate *= height;
+
+    printf("Th %ld > estimate: %lf\n", my_rank, estimate);
+
+    pthread_mutex_lock(&mutex);
+    total_integral += estimate;
+    pthread_mutex_unlock(&mutex);
+    
     return NULL;
 }
 
 
+/*------------------------------------------------------------------
+ * Function:    Func
+ * Purpose:     Get some input and return the output of the defined function
+ * In args:     x
+ * Globals out:
+ */
 double Func(double x)
 {
     return x * x;
 }
 
 
-void Get_input(double* start_p, double* end_p, int* n_p)
-{
-    printf("Enter a, b, and n\n");
-    scanf("%lf %lf %d", start_p, end_p, n_p);
-}
-
 /*------------------------------------------------------------------
  * Function:    Get_args
  * Purpose:     Get the command line args
  * In args:     argc, argv
- * Globals out: thread_count, n
+ * Globals out: thread_count, num_subints, start_point, end_point
  */
 void Get_args(int argc, char* argv[]) {
     if (argc != 5)
