@@ -85,7 +85,7 @@ void* Trap(void* rank)
     }
     estimate *= height;
 
-    printf("Th %ld > estimate: %lf\n", my_rank, estimate);
+    //printf("Th %ld > estimate: %lf\n", my_rank, estimate);
 
     pthread_mutex_lock(&mutex);
     total_integral += estimate;
